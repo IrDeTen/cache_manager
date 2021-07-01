@@ -2,11 +2,14 @@ package cache
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 	"time"
 )
 
 type Item struct {
 	Value      interface{}
+	ValueType  reflect.Type
 	CreateTime time.Time
 	Expiraton  int64
 }
@@ -33,22 +36,18 @@ func NewCache(defaultExpiration, cleanupInterval time.Duration) *Cache {
 	return &cache
 }
 
-func (c *Cache) Put(key string, value interface{}, duration time.Duration) error {
+func (c *Cache) Put(key string, value interface{}) error {
 	var err error
-
-	if duration <= 0 {
-		duration = c.defaultExpiration
-	}
 
 	if _, found := c.items[key]; found {
 		err = errors.New("cache: Item with this key alredy exist")
 		return err
 	}
-
 	c.items[key] = Item{
 		Value:      value,
+		ValueType:  reflect.TypeOf(value),
 		CreateTime: time.Now(),
-		Expiraton:  time.Now().Add(duration).UnixNano(),
+		Expiraton:  time.Now().Add(c.defaultExpiration).UnixNano(),
 	}
 	return nil
 }
@@ -60,7 +59,33 @@ func (c *Cache) Get(key string) (interface{}, error) {
 		return nil, errors.New("cache: Item with this key does not exist")
 	}
 
+	if time.Now().UnixNano() > item.Expiraton {
+		return nil, errors.New("cache: Item was expired")
+
+	}
+
 	return item.Value, nil
+}
+
+func (c *Cache) GetToObj(key string, obj *interface{}) error {
+	item, found := c.items[key]
+	if !found {
+		return errors.New("cache: Item with this key does not exist")
+	}
+
+	if time.Now().UnixNano() > item.Expiraton {
+		return errors.New("cache: Item was expired")
+
+	}
+
+	if reflect.TypeOf(obj) != item.ValueType {
+		err_string := fmt.Sprintf("cache: Destination has a different data type: has %T, expect %T", obj, item.Value)
+		return errors.New(err_string)
+	}
+
+	obj = &item.Value
+
+	return nil
 }
 
 func (c *Cache) Delete(key string) error {
