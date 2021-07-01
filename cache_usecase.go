@@ -8,10 +8,9 @@ import (
 )
 
 type Item struct {
-	Value      interface{}
-	ValueType  reflect.Type
-	CreateTime time.Time
-	Expiraton  int64
+	Value     reflect.Value
+	ValueType reflect.Type
+	Expiraton int64
 }
 
 type Cache struct {
@@ -44,10 +43,9 @@ func (c *Cache) Put(key string, value interface{}) error {
 		return err
 	}
 	c.items[key] = Item{
-		Value:      value,
-		ValueType:  reflect.TypeOf(value),
-		CreateTime: time.Now(),
-		Expiraton:  time.Now().Add(c.defaultExpiration).UnixNano(),
+		Value:     reflect.ValueOf(value),
+		ValueType: reflect.TypeOf(value),
+		Expiraton: time.Now().Add(c.defaultExpiration).UnixNano(),
 	}
 	return nil
 }
@@ -78,12 +76,12 @@ func (c *Cache) GetToObj(key string, dest interface{}) error {
 
 	}
 
-	if reflect.TypeOf(dest) != item.ValueType {
+	val := reflect.ValueOf(dest)
+	if val.Elem().Type() != item.ValueType {
 		err_string := fmt.Sprintf("cache: Destination has a different data type: has %T, expect %T", dest, item.Value)
 		return errors.New(err_string)
 	}
-
-	dest = item.Value
+	val.Elem().Set(item.Value)
 
 	return nil
 }
