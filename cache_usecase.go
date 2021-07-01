@@ -67,7 +67,7 @@ func (c *Cache) Get(key string) (interface{}, error) {
 	return item.Value, nil
 }
 
-func (c *Cache) GetToObj(key string, obj *interface{}) error {
+func (c *Cache) GetToObj(key string, dest interface{}) error {
 	item, found := c.items[key]
 	if !found {
 		return errors.New("cache: Item with this key does not exist")
@@ -78,12 +78,12 @@ func (c *Cache) GetToObj(key string, obj *interface{}) error {
 
 	}
 
-	if reflect.TypeOf(obj) != item.ValueType {
-		err_string := fmt.Sprintf("cache: Destination has a different data type: has %T, expect %T", obj, item.Value)
+	if reflect.TypeOf(dest) != item.ValueType {
+		err_string := fmt.Sprintf("cache: Destination has a different data type: has %T, expect %T", dest, item.Value)
 		return errors.New(err_string)
 	}
 
-	obj = &item.Value
+	dest = item.Value
 
 	return nil
 }
