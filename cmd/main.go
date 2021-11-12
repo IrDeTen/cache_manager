@@ -22,3 +22,5 @@ func main() {
 	outUser2 := new(Test)
 	cache.GetToObj("test", outUser2)
 }
+
+//test test
